@@ -61,7 +61,7 @@ pio run -t upload       # ST-Link で書き込み
 
 **UART だけなら、サーバ不要でブラウザだけで使えます。** Chrome または Edge で UI を開き、「接続」を押してシリアルポートを選びます(Web Serial を使うため、Firefox / Safari は非対応)。
 
-- 公開ページ: <https://minami88-h.github.io/hqdd1/>(GitHub Pages)
+- 公開ページ: <https://integralindustries.github.io/hqdd1/>(GitHub Pages)
 - ローカルで開く場合: `cd webui/static && python3 -m http.server 8099` → <http://localhost:8099>
 
 **CAN を使う場合**は、PC 側のバックエンドが必要です(Linux の SocketCAN を使います)。
@@ -161,7 +161,7 @@ $OOCD -s $SCRIPTS -f interface/stlink.cfg -f target/stm32g4x.cfg \
 | ハードウェア設計・文書(`hardware/`、`docs/`) | [CC BY-NC 4.0](LICENSES/CC-BY-NC-4.0.txt) |
 | `firmware/src/can_driver/` | [ACANFD_STM32](https://github.com/pierremolinaro/ACANFD_STM32)(MIT)。同ディレクトリの `LICENSE-ACANFD_STM32` |
 
-個人・趣味・学習・教育・研究での利用や改変は自由です。商用利用を希望する場合は、[GitHub の Issues](https://github.com/minami88-h/hqdd1/issues) から連絡してください。詳しくは [LICENSE](LICENSE) を参照してください。ビルド時に取得される [SimpleFOC](https://simplefoc.com/) などのライブラリは、それぞれのライセンスに従います。
+個人・趣味・学習・教育・研究での利用や改変は自由です。商用利用を希望する場合は、[GitHub の Issues](https://github.com/IntegralIndustries/hqdd1/issues) から連絡してください。詳しくは [LICENSE](LICENSE) を参照してください。ビルド時に取得される [SimpleFOC](https://simplefoc.com/) などのライブラリは、それぞれのライセンスに従います。
 
 ## 謝辞
 
