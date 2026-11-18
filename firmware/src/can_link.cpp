@@ -41,21 +41,50 @@ extern "C" void FDCAN1_IT1_IRQHandler(void) { fdcan1.isr1(); }
 static uint8_t s_deviceId = 0;
 static uint32_t s_lastFbMs = 0;
 
+// ---- ID重複の検出 ----
+// 自分が送る0x200+ID(テレメトリ)は自分では受信しない。これを受信したら、同じIDの別の基板がいる。
+// CONFLICT_COUNT回以上がCONFLICT_WINDOW_MS以内に届いたら「重複」とし、最後の受信から
+// CONFLICT_CLEAR_MS受信がなければ解除する。出力の停止はmain.cpp、LED表示はui.cppが行う。
+static const uint8_t CONFLICT_COUNT = 2;
+static const uint32_t CONFLICT_WINDOW_MS = 3000;
+static const uint32_t CONFLICT_CLEAR_MS = 5000;
+static bool s_conflict = false;
+static uint8_t s_conflictCount = 0;
+static uint32_t s_conflictWindowStartMs = 0;
+static uint32_t s_conflictLastRxMs = 0;
+
+static void conflictOnRx(uint32_t now) {
+  if (s_conflictCount == 0 || now - s_conflictWindowStartMs > CONFLICT_WINDOW_MS) {
+    s_conflictWindowStartMs = now;
+    s_conflictCount = 0;
+  }
+  if (s_conflictCount < 255) s_conflictCount++;
+  s_conflictLastRxMs = now;
+  if (s_conflictCount >= CONFLICT_COUNT) s_conflict = true;
+}
+
+bool can_link_id_conflict() { return s_conflict; }
+
 static void startWithFilter(uint8_t deviceId) {
   ACANFD_STM32_Settings settings(1000UL * 1000, DataBitRateFactor::x1);
   ACANFD_STM32_StandardFilters filters;
   filters.addSingle((uint16_t)(CAN_CMD_ID_BASE + deviceId), ACANFD_STM32_FilterAction::FIFO0);
+  filters.addSingle((uint16_t)(CAN_FB_ID_BASE + deviceId), ACANFD_STM32_FilterAction::FIFO0);  // ID重複の検出用
   settings.mNonMatchingStandardFrameReception = ACANFD_STM32_FilterAction::REJECT;
   fdcan1.beginFD(settings, filters);
 }
 
 void can_link_init(uint8_t deviceId) {
   s_deviceId = deviceId;
+  s_conflict = false;
+  s_conflictCount = 0;
   startWithFilter(s_deviceId);
 }
 
 void can_link_set_id(uint8_t deviceId) {
   s_deviceId = deviceId;
+  s_conflict = false;
+  s_conflictCount = 0;
   fdcan1.end();
   startWithFilter(s_deviceId);
 }
@@ -121,11 +150,18 @@ static void sendFeedback() {
 
 void can_link_update() {
   CANFDMessage frame;
-  if (fdcan1.receiveFD0(frame)) {
-    dispatchCommand(frame.data, frame.len);
-  }
-
   uint32_t now = millis();
+  if (fdcan1.receiveFD0(frame)) {
+    if (frame.id == CAN_FB_ID_BASE + s_deviceId) {
+      if (!frame.ext && frame.type == CANFDMessage::CAN_DATA) conflictOnRx(now);  // 自分のIDで別の基板が送っている
+    } else {
+      dispatchCommand(frame.data, frame.len);
+    }
+  }
+  if (s_conflict && now - s_conflictLastRxMs > CONFLICT_CLEAR_MS) {
+    s_conflict = false;
+    s_conflictCount = 0;
+  }
   if (now - s_lastFbMs >= FB_PERIOD_MS) {
     s_lastFbMs = now;
     sendFeedback();

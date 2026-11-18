@@ -375,6 +375,15 @@ void setup() {
 }
 
 void loop() {
+  // 同じIDの基板がバスにいる間は出力を止める(両方が同じ指令で動くのを防ぐ)。
+  // 止める/戻す瞬間に'S'相当(速度モード・目標0)にして、解除後に古い目標で動き出さないようにする。
+  // ビープ中はui.cppが位相電圧を使っているので、ビープが終わってから切り替える。
+  static bool s_idConflictStopped = false;
+  if (!ui_is_beeping() && can_link_id_conflict() != s_idConflictStopped) {
+    s_idConflictStopped = can_link_id_conflict();
+    doStop(nullptr);
+    if (s_idConflictStopped) motor.disable(); else motor.enable();
+  }
   // ビープ中はui.cppが位相電圧を直接制御するので、通常のFOC出力は止める。
   if (!ui_is_beeping()) {
     motor.loopFOC();

@@ -131,6 +131,14 @@ static void updateLedId() {
 }
 
 static void updateLedLoad() {
+  // ID重複中は出力が止まっていて負荷表示は意味がないので、LED0で知らせる:
+  // 2回速く点滅 -> 長い消灯(1.2秒周期)
+  if (can_link_id_conflict()) {
+    uint32_t t = millis() % 1200;
+    digitalWrite(PIN_LED_LOAD, (t < 100 || (t >= 200 && t < 300)) ? HIGH : LOW);
+    s_loadOn = false;
+    return;
+  }
   float iq = fabsf(motor.current.q);
   bool commanded = fabsf(motor.target) > LOAD_TARGET_EPS;
   if (!s_loadOn && (commanded || iq > LOAD_IQ_ON_A)) {

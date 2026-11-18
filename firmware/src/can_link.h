@@ -31,6 +31,9 @@ inline float gearMotorToOutput(float motorVal, bool isTorqueMode) {
 void can_link_init(uint8_t deviceId);
 // ボタンでIDが変わった時に呼ぶ。受信フィルタを即座に再設定する。
 void can_link_set_id(uint8_t deviceId);
+// 同じIDの基板が同じバスにいる間true。trueの間、main.cppがモーター出力を止め、
+// ui.cppがLED0(負荷検出LED)で知らせる。
+bool can_link_id_conflict();
 // loop()から毎回呼ぶ(ノンブロッキング)。受信コマンド処理+周期フィードバック送信。
 void can_link_update();
 
